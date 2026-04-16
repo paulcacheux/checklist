@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liste des invitations</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 1.8rem;
+            color: #222;
+        }
+
+        .upload-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed #ccc;
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            background: #fff;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .upload-area:hover {
+            border-color: #888;
+            background: #fafafa;
+        }
+
+        .upload-area.dragover {
+            border-color: #4a90d9;
+            background: #eef4fb;
+        }
+
+        .upload-area p {
+            font-size: 1.1rem;
+            color: #666;
+            margin-bottom: 1rem;
+        }
+
+        .upload-area .icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-btn {
+            padding: 0.6rem 1.5rem;
+            background: #4a90d9;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .upload-btn:hover {
+            background: #3a7bc8;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 0.6rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: #4a90d9;
+        }
+
+        .stats {
+            font-size: 0.95rem;
+            color: #555;
+            white-space: nowrap;
+        }
+
+        .stats strong {
+            color: #4a90d9;
+        }
+
+        .change-file-btn {
+            padding: 0.5rem 1rem;
+            background: #eee;
+            color: #555;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+
+        .change-file-btn:hover {
+            background: #ddd;
+        }
+
+        .guest-list {
+            background: #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .guest-header {
+            display: grid;
+            grid-template-columns: 50px 1fr 1fr 1fr 80px;
+            padding: 0.8rem 1rem;
+            background: #f8f8f8;
+            border-bottom: 2px solid #eee;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: #666;
+        }
+
+        .guest-row {
+            display: grid;
+            grid-template-columns: 50px 1fr 1fr 1fr 80px;
+            padding: 0.7rem 1rem;
+            border-bottom: 1px solid #f0f0f0;
+            align-items: center;
+            transition: background 0.15s;
+        }
+
+        .guest-row:last-child {
+            border-bottom: none;
+        }
+
+        .guest-row:hover {
+            background: #fafafa;
+        }
+
+        .guest-row.checked {
+            background: #f0f8f0;
+        }
+
+        .guest-row .row-num {
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+
+        .guest-row .name {
+            font-weight: 500;
+        }
+
+        .guest-row .confirmation {
+            text-align: center;
+        }
+
+        .guest-row .confirmation .badge {
+            display: inline-block;
+            background: #e8e8e8;
+            color: #555;
+            border-radius: 12px;
+            padding: 0.15rem 0.6rem;
+            font-size: 0.85rem;
+            min-width: 28px;
+            text-align: center;
+        }
+
+        .guest-row.checked .confirmation .badge {
+            background: #d4edda;
+            color: #2d6a3f;
+        }
+
+        .check-cell {
+            display: flex;
+            justify-content: center;
+        }
+
+        .check-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid #ddd;
+            background: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            font-size: 1rem;
+            color: transparent;
+        }
+
+        .check-btn:hover {
+            border-color: #4a90d9;
+        }
+
+        .check-btn.active {
+            background: #4a90d9;
+            border-color: #4a90d9;
+            color: #fff;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: #999;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 1rem 0.5rem;
+            }
+
+            h1 {
+                font-size: 1.4rem;
+            }
+
+            .guest-header,
+            .guest-row {
+                grid-template-columns: 40px 1fr 1fr 60px 60px;
+                font-size: 0.9rem;
+                padding: 0.6rem 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Liste des invitations</h1>
+
+        <div id="upload-section">
+            <div class="upload-area" id="drop-zone">
+                <div class="icon">&#128196;</div>
+                <p>Glissez votre fichier Excel ici ou</p>
+                <button class="upload-btn" id="upload-btn">Choisir un fichier</button>
+                <input type="file" id="file-input" accept=".xlsx,.xls">
+            </div>
+        </div>
+
+        <div id="list-section" class="hidden">
+            <div class="toolbar">
+                <input type="text" class="search-input" id="search-input" placeholder="Rechercher par nom ou pr&#233;nom...">
+                <div class="stats" id="stats"></div>
+                <button class="change-file-btn" id="change-file-btn">Changer de fichier</button>
+            </div>
+            <div class="guest-list">
+                <div class="guest-header">
+                    <div>#</div>
+                    <div>Nom</div>
+                    <div>Pr&#233;nom(s)</div>
+                    <div style="text-align:center">Confirm.</div>
+                    <div style="text-align:center">Enregistr&#233;</div>
+                </div>
+                <div id="guest-rows"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'checklist_registrations';
+
+        let guests = [];
+        let registrations = loadRegistrations();
+
+        // --- Storage ---
+        function loadRegistrations() {
+            try {
+                return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+            } catch {
+                return {};
+            }
+        }
+
+        function saveRegistrations() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(registrations));
+        }
+
+        function guestKey(guest) {
+            return [guest.nom, guest.prenomH, guest.prenomF].join('|').toLowerCase();
+        }
+
+        // --- Excel parsing ---
+        function parseFile(file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+                guests = rows.map((row, i) => {
+                    const keys = Object.keys(row);
+                    return {
+                        nom: String(row[keys[0]] || '').trim(),
+                        prenomH: String(row[keys[1]] || '').trim(),
+                        prenomF: String(row[keys[2]] || '').trim(),
+                        confirmation: String(row[keys[6]] || '').trim(),
+                        _index: i,
+                    };
+                }).filter(g => g.nom || g.prenomH || g.prenomF);
+
+                showList();
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // --- Rendering ---
+        function showList() {
+            document.getElementById('upload-section').classList.add('hidden');
+            document.getElementById('list-section').classList.remove('hidden');
+            render();
+        }
+
+        function showUpload() {
+            document.getElementById('upload-section').classList.remove('hidden');
+            document.getElementById('list-section').classList.add('hidden');
+            guests = [];
+            document.getElementById('file-input').value = '';
+        }
+
+        function render() {
+            const query = document.getElementById('search-input').value.toLowerCase().trim();
+            const container = document.getElementById('guest-rows');
+
+            const filtered = guests.filter(g => {
+                if (!query) return true;
+                const haystack = [g.nom, g.prenomH, g.prenomF].join(' ').toLowerCase();
+                return query.split(/\s+/).every(term => haystack.includes(term));
+            });
+
+            const totalRegistered = guests.filter(g => registrations[guestKey(g)]).length;
+            document.getElementById('stats').innerHTML =
+                `<strong>${totalRegistered}</strong> / ${guests.length} enregistr&#233;(s)`;
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="empty-state">Aucun r&#233;sultat</div>';
+                return;
+            }
+
+            container.innerHTML = filtered.map((g, i) => {
+                const key = guestKey(g);
+                const isChecked = !!registrations[key];
+                const prenoms = [g.prenomH, g.prenomF].filter(Boolean).join(' & ');
+                return `
+                    <div class="guest-row ${isChecked ? 'checked' : ''}" data-key="${escapeAttr(key)}">
+                        <div class="row-num">${g._index + 1}</div>
+                        <div class="name">${escapeHtml(g.nom)}</div>
+                        <div>${escapeHtml(prenoms)}</div>
+                        <div class="confirmation"><span class="badge">${escapeHtml(g.confirmation) || '—'}</span></div>
+                        <div class="check-cell">
+                            <button class="check-btn ${isChecked ? 'active' : ''}"
+                                    onclick="toggleRegistration('${escapeAttr(key)}')"
+                                    aria-label="Enregistrer">&#10003;</button>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        function toggleRegistration(key) {
+            if (registrations[key]) {
+                delete registrations[key];
+            } else {
+                registrations[key] = true;
+            }
+            saveRegistrations();
+            render();
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function escapeAttr(str) {
+            return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        }
+
+        // --- Event listeners ---
+        document.getElementById('upload-btn').addEventListener('click', () => {
+            document.getElementById('file-input').click();
+        });
+
+        document.getElementById('file-input').addEventListener('change', (e) => {
+            if (e.target.files[0]) parseFile(e.target.files[0]);
+        });
+
+        document.getElementById('search-input').addEventListener('input', render);
+
+        document.getElementById('change-file-btn').addEventListener('click', showUpload);
+
+        // Drag & drop
+        const dropZone = document.getElementById('drop-zone');
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) parseFile(file);
+        });
+    </script>
+</body>
+</html>
